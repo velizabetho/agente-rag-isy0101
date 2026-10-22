@@ -141,6 +141,17 @@ def _session_dict(s: PlannedSession) -> dict:
     return {"session": s.number, "date": s.date.isoformat(), "from_page": s.from_page, "to_page": s.to_page}
 
 
+def cancel_plan(conn: sqlite3.Connection, club_id: str) -> dict:
+    """Cancel the club's active reading plan and its pending sessions (e.g. the group changed the book)."""
+    _club(conn, club_id)
+    plan = _active_plan(conn, club_id)
+    if plan is None:
+        raise RecordError("El club no tiene un plan de lectura activo.")
+    conn.execute("UPDATE reading_plans SET status = 'cancelled' WHERE id = ?", (plan["id"],))
+    conn.execute("UPDATE plan_sessions SET status = 'cancelled' WHERE plan_id = ? AND status = 'pending'", (plan["id"],))
+    return {"cancelled_plan_id": plan["id"], "book_title": plan["book_title"]}
+
+
 def log_session(
     conn: sqlite3.Connection,
     club_id: str,

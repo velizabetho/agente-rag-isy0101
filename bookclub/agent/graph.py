@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 from bookclub.agent.prompts import AGENT_SYSTEM_PROMPT, PLANNER_SYSTEM_PROMPT
 from bookclub.agent.tools import ALL_TOOLS
 
-MAX_HISTORY_MESSAGES = 24
+MAX_HISTORY_MESSAGES = 16
 
 
 def _is_malformed_tool_call(exc: Exception) -> bool:

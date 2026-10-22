@@ -85,9 +85,19 @@ def test_logging_last_page_finishes_plan(conn):
     records.create_reading_plan(conn, "club-rm", "Sub terra", 262, "2026-11-02")
 
     result = records.log_session(conn, "club-rm", "2026-12-28", "Cerramos el libro", pages_read_to=262)
-
     assert result["plan_finished"] is True
     assert records.club_status(conn, "club-rm")["active_plan"] is None
+
+
+def test_cancelling_plan_allows_a_new_one(conn):
+    records.create_reading_plan(conn, "club-rm", "Sub terra", 262, "2026-11-02")
+
+    records.cancel_plan(conn, "club-rm")
+    plan = records.create_reading_plan(conn, "club-rm", "Martín Rivas", 252, "2026-11-02")
+
+    assert records.club_status(conn, "club-rm")["active_plan"]["id"] == plan["plan_id"]
+    with pytest.raises(RecordError, match="no tiene un plan"):
+        records.cancel_plan(conn, "club-rm-2")
 
 
 def test_sql_tool_reads_allowed_tables(db_file):

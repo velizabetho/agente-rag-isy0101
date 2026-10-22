@@ -107,7 +107,9 @@ def search_book_info(title: str, author: str | None = None) -> tuple[str, list[d
         results = external.search_open_library(title, author)
     except Exception as exc:  # network errors must not break the conversation
         return f"ERROR: Open Library no respondió ({exc}).", []
-    return (_json(results) if results else "Sin resultados en Open Library."), results
+    # Only the best match keeps its description; alternatives are listed briefly to save tokens.
+    compact = results[:1] + [{k: r[k] for k in ("title", "authors", "first_publish_year")} for r in results[1:]]
+    return (_json(compact) if results else "Sin resultados en Open Library."), results
 
 
 @tool(response_format="content_and_artifact")
@@ -176,6 +178,12 @@ def replan_reading(
 
 
 @tool(response_format="content_and_artifact")
+def cancel_reading_plan(club_id: ClubId) -> tuple[str, dict]:
+    """Cancel the current club's active reading plan (e.g. the group changed the book). Ask the user first."""
+    return _run(records.cancel_plan, club_id)
+
+
+@tool(response_format="content_and_artifact")
 def remember_club_fact(fact: str, kind: str, club_id: ClubId) -> tuple[str, dict]:
     """Save a durable fact about the current club in long-term memory so it is remembered in future
     conversations. kind: 'preference' (tastes, constraints), 'agreement' (group decisions), 'progress'
@@ -201,6 +209,6 @@ def save_session_guide(title: str, content_markdown: str, club_id: ClubId) -> tu
 
 QUERY_TOOLS = [search_club_guidelines, query_database, check_availability, get_club_status, search_book_info,
                search_author_context]
-WRITE_TOOLS = [reserve_copies, create_reading_plan, log_session, replan_reading, remember_club_fact,
-               save_session_guide]
+WRITE_TOOLS = [reserve_copies, create_reading_plan, log_session, replan_reading, cancel_reading_plan,
+               remember_club_fact, save_session_guide]
 ALL_TOOLS = QUERY_TOOLS + WRITE_TOOLS
