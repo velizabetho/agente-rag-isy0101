@@ -1,0 +1,20 @@
+# Entorno y secretos
+.env
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Datos generados
+vectorstore/
+*.db
+evaluation/results/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
