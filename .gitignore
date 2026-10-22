@@ -8,10 +8,12 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# Datos generados
+# Datos descargados y generados
+data/raw/
 vectorstore/
 *.db
-evaluation/results/
+evaluation/results/*.db
+data/guides/
 
 # Sistema / editor
 .DS_Store
