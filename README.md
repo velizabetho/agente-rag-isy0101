@@ -61,13 +61,6 @@ streamlit run app.py        # abre http://localhost:8501
 
 `bookclub.setup` se puede volver a ejecutar cuando cambien las fuentes: reconstruye la base SQLite y la colección del manual desde cero. La primera vez descarga el modelo de embeddings (`intfloat/multilingual-e5-small`, ~470 MB).
 
-### Con Docker (opcional)
-
-```bash
-docker compose --profile setup run --rm setup   # primera vez
-docker compose up app                           # http://localhost:8501
-```
-
 ## Pruebas y evaluación
 
 ```bash
