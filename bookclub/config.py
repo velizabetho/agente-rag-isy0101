@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     llm_model: str = "openai/gpt-oss-120b"
     planner_model: str = "openai/gpt-oss-20b"
-    judge_model: str = "qwen/qwen3.8-27b"
+    judge_model: str = "openai/gpt-oss-20b"
 
     embedding_provider: str = "local"
     embedding_model: str = "intfloat/multilingual-e5-small"
