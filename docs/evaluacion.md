@@ -36,8 +36,8 @@ La corrida se detuvo en la pregunta 25 por el límite diario de tokens del plan 
 
 | Pregunta | Error | Origen | Cambio |
 |---|---|---|---|
+| q03 (copias mínimas por título del catálogo) | Consultó la base de datos en vez del manual | **Decisión de herramienta**: la pregunta menciona "catálogo" y el prompt asociaba catálogos con SQL | Prompt v2: datos del programa (copias mínimas, cantidad de clubes y redes, curso) van al manual; títulos y registros concretos van a SQL |
 | q08 (personas y redes regionales del programa) | Consultó la base de datos en vez del manual | **Decisión de herramienta**: la base solo tiene los 195 clubes con ficha, no las cifras oficiales del programa (más de 270 clubes, 2700 personas, 16 redes) | Mismo cambio del prompt v2 |
-| q08 (personas y redes regionales del programa) | Consultó la tabla de clubes en vez del manual | **Decisión de herramienta**: contó clubes de la base (195) en vez de la cifra oficial del manual (más de 270) | Mismo cambio del prompt v2 |
 | q09 (límite de Zoom gratuito) | El fragmento correcto (p. 55) se recuperó, pero el juez marcó incorrecta la respuesta | **Respuesta esperada**: exigía un segundo dato no esencial (que Zoom requiere instalación) | Se dejó solo el dato esencial (40 minutos) |
 | q10 (nombre del curso y número de módulos) | Respuesta incorrecta con la herramienta correcta | **Recuperación**: los módulos están repartidos en 3 fragmentos (pp. 57-59) y el número total no aparece escrito | Se mantiene como pregunta difícil |
 | q21 (reservar 8 copias) | Reservó bien, pero el juez marcó incorrecta la respuesta | **Respuesta esperada**: exigía informar las copias restantes, dato no pedido | Se dejó solo lo esencial (copias y fechas) |
