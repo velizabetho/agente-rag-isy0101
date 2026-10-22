@@ -120,6 +120,9 @@ with eval_tab:
         chosen = st.selectbox("Resultados", runs, format_func=lambda p: p.stem)
         report = json.loads(chosen.read_text(encoding="utf-8"))
         summary = report["summary"]
+        if not report.get("complete", True):
+            st.warning(f"Evaluación incompleta ({summary['n']} preguntas). Se reanuda con "
+                       "`python -m evaluation.evaluate --resume`.")
         cols = st.columns(3)
         cols[0].metric("Tool accuracy", f"{summary['tool_accuracy']:.0%}")
         cols[1].metric("Answer accuracy", f"{summary['answer_accuracy']:.0%}")

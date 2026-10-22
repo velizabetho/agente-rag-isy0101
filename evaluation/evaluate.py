@@ -50,8 +50,9 @@ def load_dataset() -> list[dict]:
 
 @contextmanager
 def isolated_database(target: Path) -> Iterator[Path]:
-    """Point the app at a copy of the SQLite database for the duration of the run."""
-    shutil.copyfile(db.db_path(), target)
+    """Point the app at a copy of the SQLite database (reused if it already exists, e.g. when resuming)."""
+    if not target.exists():
+        shutil.copyfile(db.db_path(), target)
     original = db.db_path
     db.db_path = lambda: target
     try:
@@ -117,33 +118,72 @@ def summarize(results: list[dict]) -> dict:
     }
 
 
-def run_evaluation(on_progress: Callable[[int, int], None] | None = None, ids: list[str] | None = None) -> dict:
-    dataset = [item for item in load_dataset() if not ids or item["id"] in ids]
+def _save(report: dict) -> Path:
+    path = RESULTS_DIR / f"run_{report['timestamp']}.json"
+    path.write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    return path
+
+
+def latest_incomplete_run() -> Path | None:
+    for path in sorted(RESULTS_DIR.glob("run_*.json"), reverse=True):
+        if not json.loads(path.read_text(encoding="utf-8")).get("complete", True):
+            return path
+    return None
+
+
+def run_evaluation(
+    on_progress: Callable[[int, int], None] | None = None, ids: list[str] | None = None, resume: Path | None = None
+) -> dict:
+    """Run (or resume) an evaluation. Results are saved after every question, so a run stopped by the
+    provider's rate limits can be resumed later with the same throwaway database state."""
     RESULTS_DIR.mkdir(exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    get_collection(MEMORIES).delete_many({"club_id": EVAL_CLUB})
+    if resume:
+        report = json.loads(resume.read_text(encoding="utf-8"))
+    else:
+        report = {"timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"), "complete": False, "results": []}
+        get_collection(MEMORIES).delete_many({"club_id": EVAL_CLUB})
+    done = {r["id"] for r in report["results"]}
+    dataset = [item for item in load_dataset() if (not ids or item["id"] in ids)]
+    pending = [item for item in dataset if item["id"] not in done]
     agent = build_graph(get_llm(), planner_llm=get_planner_llm(), club_context_fn=club_context,
                         recall_fn=recall_memories, checkpointer=InMemorySaver())
 
-    results = []
-    with isolated_database(RESULTS_DIR / f"eval_{stamp}.db") as db_copy:
-        for i, item in enumerate(dataset, 1):
-            results.append(evaluate_item(item, agent))
-            if on_progress:
-                on_progress(i, len(dataset))
-            print(f"[{i}/{len(dataset)}] {item['id']} tool={results[-1]['tool_correct']} "
-                  f"answer={results[-1]['answer_correct']} tools={results[-1]['tools_called']}", flush=True)
+    with isolated_database(RESULTS_DIR / f"eval_{report['timestamp']}.db") as db_copy:
+        try:
+            for item in pending:
+                report["results"].append(evaluate_item(item, agent))
+                report["summary"] = summarize(report["results"])
+                _save(report)
+                n_done = len(report["results"])
+                if on_progress:
+                    on_progress(n_done, len(dataset))
+                last = report["results"][-1]
+                print(f"[{n_done}/{len(dataset)}] {item['id']} tool={last['tool_correct']} "
+                      f"answer={last['answer_correct']} tools={last['tools_called']}", flush=True)
+        except Exception as exc:  # typically the provider's daily token limit
+            report["stopped_by"] = str(exc)[:300]
+            _save(report)
+            print(f"Stopped after {len(report['results'])} questions: {exc}\n"
+                  "Resume later with: python -m evaluation.evaluate --resume", flush=True)
+            return report
+    report["complete"] = True
+    report.pop("stopped_by", None)
+    report["summary"] = summarize(report["results"])
+    _save(report)
     db_copy.unlink(missing_ok=True)
     get_collection(MEMORIES).delete_many({"club_id": EVAL_CLUB})
-
-    report = {"timestamp": stamp, "summary": summarize(results), "results": results}
-    (RESULTS_DIR / f"run_{stamp}.json").write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str),
-                                                  encoding="utf-8")
     return report
 
 
 if __name__ == "__main__":
     import sys
 
-    summary = run_evaluation(ids=sys.argv[1:] or None)["summary"]
+    args = sys.argv[1:]
+    resume = None
+    if "--resume" in args:
+        args.remove("--resume")
+        resume = latest_incomplete_run()
+        if resume is None:
+            sys.exit("No incomplete run to resume.")
+    summary = run_evaluation(ids=args or None, resume=resume).get("summary")
     print(json.dumps(summary, ensure_ascii=False, indent=2))
