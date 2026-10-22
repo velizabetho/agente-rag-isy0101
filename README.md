@@ -44,7 +44,7 @@ data/                  listado de clubes (CSV); el resto se genera
 
 - Python 3.12 o superior.
 - Una API key de [Groq](https://console.groq.com/keys) (plan gratuito).
-- Un cluster de [MongoDB Atlas](https://cloud.mongodb.com) (plan gratuito) con un usuario de lectura/escritura y tu IP en la lista de acceso.
+- Un cluster de [MongoDB Atlas](https://cloud.mongodb.com) (plan gratuito) con un usuario de lectura/escritura. En *Network Access* se habilita `0.0.0.0/0` para poder conectarse desde cualquier red; el acceso queda protegido por el usuario y la contraseña de `MONGODB_URI`.
 
 ## Instalación y ejecución
 
