@@ -12,7 +12,8 @@ __pycache__/
 data/raw/
 vectorstore/
 *.db
-evaluation/results/
+evaluation/results/*.db
+data/guides/
 
 # Sistema / editor
 .DS_Store

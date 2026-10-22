@@ -1,0 +1,17 @@
+services:
+  setup:
+    build: .
+    env_file: .env
+    command: python -m bookclub.setup
+    volumes:
+      - ./data:/app/data
+    profiles: ["setup"]
+
+  app:
+    build: .
+    env_file: .env
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./evaluation/results:/app/evaluation/results
