@@ -9,9 +9,13 @@ El proyecto se desarrolla en dos etapas sobre el mismo caso organizacional:
 | 1 | Evaluación Parcial N°1 — Diseño de Solución con LLM y RAG | Prompts, pipeline RAG con fuentes internas y externas, arquitectura de la solución |
 | 2 | Evaluación Parcial N°2 — Desarrollo de un Agente Funcional | Agente con herramientas de consulta, escritura y razonamiento, memoria y planificación |
 
+## Caso
+
+Asistente para personas que conducen **clubes de lectura de las bibliotecas públicas de Chile** (Sistema Nacional de Bibliotecas Públicas). Detalle en [`docs/caso.md`](docs/caso.md).
+
 ## Estado
 
-En definición del caso organizacional.
+Caso definido. Próximo paso: ingesta de las fuentes (orientaciones, catálogos) y pipeline RAG.
 
 ## Ramas
 
