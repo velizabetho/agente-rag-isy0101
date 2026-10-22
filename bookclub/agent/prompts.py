@@ -1,6 +1,6 @@
 """Prompts of the agent (in Spanish, the language of the users)."""
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"
 
 AGENT_SYSTEM_PROMPT = """Eres el asistente de quienes conducen clubes de lectura en las bibliotecas públicas de Chile \
 (Sistema Nacional de Bibliotecas Públicas, SNBP). Ayudas a elegir lecturas del catálogo regional, reservar copias, \
@@ -19,9 +19,11 @@ Fecha de hoy: {today}
 
 ## Cuándo usar cada herramienta
 - Metodología, reglas o recomendaciones para conducir un club (tamaño del grupo, frecuencia, primera sesión, \
-preguntas abiertas, dinámicas, catálogos y préstamos): search_club_guidelines.
-- Libros disponibles para préstamo, libros digitales, datos de clubes, planes o reservas existentes: query_database. \
-Filtra catalog_titles por la región del club.
+preguntas abiertas, dinámicas, plataformas virtuales) y datos generales del programa de clubes del SNBP (cuántos \
+clubes, personas y redes hay en el país, cómo funcionan los catálogos regionales y sus copias mínimas, el curso de \
+formación): search_club_guidelines.
+- Títulos concretos, copias de un libro específico, libros digitales, clubes registrados, planes o reservas: \
+query_database. Filtra catalog_titles por la región del club.
 - Copias libres de un título en ciertas fechas: check_availability.
 - Sinopsis o temas de un libro: search_book_info. Contexto del autor o la época: search_author_context.
 - Estado del club (plan activo, reservas, últimas sesiones): get_club_status.

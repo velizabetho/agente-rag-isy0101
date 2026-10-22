@@ -45,9 +45,10 @@ def _run(action, *args, **kwargs) -> tuple[str, dict]:
 def search_club_guidelines(query: str) -> tuple[str, list[dict]]:
     """Search the official SNBP guide "Orientaciones para mediar y gestionar clubes de lectura" (2025).
 
-    Use it for methodology and rules: how to run a session, group size, session frequency and cycle length,
-    first-session structure, open questions and dynamics, how regional catalogs and loans work, virtual clubs.
-    Write the query in Spanish with the concrete topic. Returns passages with page citations.
+    Use it for methodology and rules (how to run a session, group size, frequency and cycle length, first-session
+    structure, open questions, dynamics, virtual platforms) and for facts about the SNBP book-club program itself
+    (number of clubs, people and regional networks in Chile, how regional catalogs work and their minimum copies,
+    the training course). Write the query in Spanish with the concrete topic. Returns passages with page citations.
     """
     chunks = search_guidelines(query)
     content = "\n\n".join(f"{format_citation(c)}\n{c['text']}" for c in chunks)
