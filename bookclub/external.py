@@ -1,6 +1,10 @@
 """External sources: Open Library (book metadata) and Spanish Wikipedia (author context)."""
 
+from urllib.parse import urlparse
+
 import requests
+
+from bookclub.observability.recorder import span
 
 USER_AGENT = "bookclub-student-project/0.1 (educational use)"
 TIMEOUT_S = 15
@@ -11,8 +15,10 @@ _session.headers["User-Agent"] = USER_AGENT
 
 
 def _get_json(url: str, params: dict | None = None) -> dict:
-    response = _session.get(url, params=params, timeout=TIMEOUT_S)
-    response.raise_for_status()
+    with span(urlparse(url).netloc, kind="http") as s:
+        response = _session.get(url, params=params, timeout=TIMEOUT_S)
+        s["status_code"] = response.status_code
+        response.raise_for_status()
     return response.json()
 
 

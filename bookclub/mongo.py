@@ -9,6 +9,7 @@ from pymongo.database import Database
 from pymongo.operations import SearchIndexModel
 
 from bookclub.config import get_settings
+from bookclub.observability.recorder import span
 
 GUIDELINES = "guideline_chunks"
 MEMORIES = "club_memories"
@@ -83,4 +84,5 @@ def vector_search(
         {"$project": {"embedding": 0}},
         {"$addFields": {"score": {"$meta": "vectorSearchScore"}}},
     ]
-    return list(collection.aggregate(pipeline))
+    with span(collection.name, kind="vector_search"):
+        return list(collection.aggregate(pipeline))

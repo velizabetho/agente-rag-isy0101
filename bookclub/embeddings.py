@@ -4,6 +4,7 @@ from functools import lru_cache
 from typing import Protocol
 
 from bookclub.config import get_settings
+from bookclub.observability.recorder import span
 
 
 class Embedder(Protocol):
@@ -25,7 +26,9 @@ class LocalEmbedder:
         self.dimensions = self._model.get_embedding_dimension()
 
     def _encode(self, texts: list[str]) -> list[list[float]]:
-        vectors = self._model.encode(texts, normalize_embeddings=True, batch_size=32)
+        with span("encode", kind="embedding") as s:
+            s["texts"] = len(texts)
+            vectors = self._model.encode(texts, normalize_embeddings=True, batch_size=32)
         return vectors.tolist()
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
@@ -56,4 +59,5 @@ def get_embedder() -> Embedder:
     settings = get_settings()
     if settings.embedding_provider == "openai":
         return OpenAIEmbedder(settings.embedding_model, settings.openai_api_key)
-    return LocalEmbedder(settings.embedding_model)
+    with span("load_embedding_model", kind="embedding"):  # cold start: only the first call of the process
+        return LocalEmbedder(settings.embedding_model)
