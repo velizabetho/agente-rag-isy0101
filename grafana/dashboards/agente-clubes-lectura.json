@@ -410,7 +410,7 @@
         "x": 12,
         "y": 6,
         "w": 12,
-        "h": 8
+        "h": 9
       },
       "targets": [
         {
@@ -419,7 +419,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (name) (increase(agent_step_duration_seconds_sum{kind!=\"node\"}[$__range])) / sum by (name) (increase(agent_step_duration_seconds_count{kind!=\"node\"}[$__range]))",
+          "expr": "sum by (name) (increase(agent_step_duration_seconds_sum{kind!=\"node\"}[$__range])) / (sum by (name) (increase(agent_step_duration_seconds_count{kind!=\"node\"}[$__range])) > 0)",
           "legendFormat": "{{name}}",
           "instant": true,
           "range": false
