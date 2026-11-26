@@ -13,6 +13,7 @@ from bookclub import guardrails, memory
 from bookclub.agent.graph import build_graph
 from bookclub.config import get_settings
 from bookclub.db import connect
+from bookclub.embeddings import get_embedder
 from bookclub.llm import get_llm, get_planner_llm
 from bookclub.mongo import get_client
 from bookclub.observability import otel, store
@@ -49,6 +50,11 @@ def build_agent(checkpointer=None, llm: BaseChatModel | None = None):
 @lru_cache
 def get_agent():
     return build_agent(MongoDBSaver(get_client(), db_name=get_settings().mongodb_db))
+
+
+def warm_up() -> None:
+    """Load the embedding model before the first turn; otherwise the first user pays its load time (cold start)."""
+    get_embedder()
 
 
 @dataclass

@@ -19,7 +19,7 @@ from pathlib import Path
 
 from langgraph.checkpoint.memory import InMemorySaver
 
-from bookclub.agent.runtime import ask, build_agent
+from bookclub.agent.runtime import ask, build_agent, warm_up
 from bookclub.config import get_settings
 from bookclub.llm import get_llm
 from bookclub.mongo import MEMORIES, get_collection
@@ -68,6 +68,7 @@ def run(tag: str, reps: int, model: str | None = None, ids: list[str] | None = N
     done = {(t["scenario_id"], t["repetition"]) for t in store.read_turns([out])}
     agent_model = model or get_settings().llm_model
     agent = build_agent(InMemorySaver(), llm=get_llm(agent_model))
+    warm_up()  # same as the app: the embedding model is loaded before the first turn
     scenarios = load_scenarios(ids)
     pending = [(s, r) for r in range(1, reps + 1) for s in scenarios if (s["id"], r) not in done]
     print(f"{tag}: {len(pending)} turns pending ({len(done)} already logged) -> {out}", flush=True)
