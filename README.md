@@ -145,14 +145,14 @@ streamlit run app.py
 
 Se abre `http://localhost:8501` en el navegador. Si no se abre solo, entrar a esa dirección.
 
-La app tiene cuatro páginas en la barra superior: **Conversación**, **Registro del club**, **Evaluación** y **Observabilidad**.
+El panel izquierdo reúne todo lo que da contexto: el nombre de la app, las cuatro páginas (**Conversación**, **Registro del club**, **Evaluación** y **Observabilidad**) y el **club activo**.
 
-1. En el panel izquierdo elegir la **región** y el **club** (por ejemplo *Metropolitana → Gente de palabra*).
+1. En **Club activo** elegir la **región** y el **club** (por ejemplo *Metropolitana → Gente de palabra*).
 2. En **Conversación**, escribir en el chat o elegir una de las preguntas sugeridas, por ejemplo: *¿Cuánto debería durar un ciclo si nos juntamos cada semana?* o *Reserva 8 copias de Sub terra del 2026-11-02 al 2026-12-28*.
 3. Bajo cada respuesta, **Trazabilidad** muestra el tiempo, los tokens, el plan de tareas, las herramientas usadas y lo que devolvieron.
 4. **Registro del club** muestra el plan activo, las reservas, las sesiones y la memoria del club.
 5. **Observabilidad** muestra el dashboard con las métricas de todos los turnos registrados (ver [Observabilidad](#observabilidad)).
-6. **Nueva conversación** abre un thread nuevo (la memoria de largo plazo del club se mantiene).
+6. **Nueva conversación** (arriba a la derecha de la página de conversación) abre un thread nuevo; la memoria de largo plazo del club se mantiene.
 
 El tema (colores, tipografías Newsreader y Roboto) y la barra sin botón *Deploy* se configuran en `.streamlit/config.toml`; los íconos son Material Symbols, que vienen con Streamlit.
 
