@@ -2,13 +2,29 @@
 
 Asistente para personas que conducen **clubes de lectura de las bibliotecas públicas de Chile** (Sistema Nacional de Bibliotecas Públicas, SNBP). Proyecto semestral de **Ingeniería de Soluciones con Inteligencia Artificial (ISY0101)** — DuocUC, 2026-2.
 
-El caso está descrito en [`docs/caso.md`](docs/caso.md), la arquitectura en [`docs/arquitectura.md`](docs/arquitectura.md) y el análisis de observabilidad en [`docs/observabilidad.md`](docs/observabilidad.md). Para revisar todo el proyecto paso a paso, ver [Cómo probar todo](#cómo-probar-todo).
+El caso está descrito en [`docs/caso.md`](docs/caso.md), la arquitectura en [`docs/arquitectura.md`](docs/arquitectura.md) y el análisis de observabilidad en [`docs/observabilidad.md`](docs/observabilidad.md).
 
 | Etapa | Evaluación | Qué incluye el proyecto |
 |---|---|---|
 | 1 | Diseño de Solución con LLM y RAG | RAG sobre el manual oficial del SNBP (fuente interna) + consultas SQL a los catálogos + Open Library y Wikipedia (fuentes externas) |
 | 2 | Desarrollo de un Agente Funcional | Agente LangGraph con herramientas de consulta, escritura y razonamiento, memoria de corto y largo plazo y planificación de tareas |
 | 3 | Implementación de Observabilidad | Telemetría por turno (latencia, tokens, errores, CPU y memoria), escenarios con variabilidad, dashboard en Streamlit y Grafana, guardrails de seguridad y privacidad |
+
+## Para revisar esta entrega
+
+La carpeta de la entrega trae un archivo `.env` con credenciales de Groq y MongoDB Atlas listas para usar, así que no hace falta crear cuentas. Requisitos: Python 3.12 o superior, Git y unos 2,5 GB libres.
+
+| Paso | Comando o acción | Qué debería pasar |
+|---|---|---|
+| 1. Clonar | `git clone https://github.com/velizabetho/agente-rag-isy0101.git` y `cd agente-rag-isy0101` | Queda la carpeta del proyecto |
+| 2. Entorno virtual | `python -m venv .venv` y activarlo (`.venv\Scripts\activate` en Windows, `source .venv/bin/activate` en Linux/macOS) | La terminal muestra `(.venv)` |
+| 3. Dependencias | `pip install -r requirements.txt` | Toma algunos minutos la primera vez |
+| 4. Credenciales | Copiar el `.env` de la carpeta de la entrega a la raíz del repositorio (junto a `app.py`) | Es un archivo oculto; en Windows activar *Ver → Elementos ocultos* |
+| 5. Datos | `python -m bookclub.setup` | Termina con `done`; descarga fuentes, arma SQLite y carga el manual en Atlas |
+| 6. App | `streamlit run app.py` | Se abre http://localhost:8501 con el panel lateral y la página **Conversación** |
+| 7. Probar | Seguir [Cómo probar todo](#cómo-probar-todo) | Cada punto dice qué escribir y qué se debería ver |
+
+Sin el `.env` de la entrega, los pasos 4 a 6 de [Instalación paso a paso](#instalación-paso-a-paso) explican cómo crear las cuentas propias. Grafana es opcional y necesita Docker; el resto funciona sin él. El plan gratuito de Groq permite unos 33 turnos al día, por eso conviene probar con pocas preguntas.
 
 ## Qué hace
 
