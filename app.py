@@ -13,11 +13,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from bookclub import memory, records  # noqa: E402  (load .env before importing settings users)
-from bookclub.agent.runtime import ask  # noqa: E402
+from bookclub.agent.runtime import ask, warm_up  # noqa: E402
 from bookclub.db import connect  # noqa: E402
+from bookclub.observability import dashboard  # noqa: E402
 from evaluation.evaluate import RESULTS_DIR, load_dataset, run_evaluation  # noqa: E402
 
 st.set_page_config(page_title="Asistente de clubes de lectura", page_icon="📚", layout="wide")
+
+
+@st.cache_resource(show_spinner="Cargando el modelo de embeddings…")
+def warm_up_once() -> bool:
+    warm_up()
+    return True
+
+
+warm_up_once()
 
 
 @st.cache_data
@@ -28,7 +38,15 @@ def load_clubs() -> pd.DataFrame:
 
 
 def show_trace(reply: dict) -> None:
-    with st.expander(f"🔧 Trazabilidad ({len(reply['trace'])} herramientas)"):
+    telemetry = reply.get("telemetry") or {}
+    summary = (f" · {telemetry['latency_ms'] / 1000:.1f} s · {telemetry['total_tokens']:,} tokens"
+               if telemetry else "")
+    with st.expander(f"🔧 Trazabilidad ({len(reply['trace'])} herramientas{summary})"):
+        guard = reply.get("guardrail") or {}
+        if guard.get("reason"):
+            st.warning(f"Bloqueado por guardrail: {guard['reason']}")
+        if guard.get("pii"):
+            st.info(f"Datos personales enmascarados antes de enviarlos al modelo: {', '.join(guard['pii'])}")
         if reply["plan"]:
             st.markdown("**Plan de tareas**")
             st.markdown("\n".join(f"{i}. {s}" for i, s in enumerate(reply["plan"], 1)))
@@ -59,7 +77,8 @@ with st.sidebar:
         st.session_state.history = []
     st.caption(f"thread: `{st.session_state.thread_id[:8]}`")
 
-chat_tab, club_tab, eval_tab = st.tabs(["💬 Chat", "🗂️ Registro del club", "📊 Evaluación"])
+chat_tab, club_tab, eval_tab, obs_tab = st.tabs(
+    ["💬 Chat", "🗂️ Registro del club", "📊 Evaluación", "📈 Observabilidad"])
 
 # ---------------------------------------------------------------- chat
 with chat_tab:
@@ -75,7 +94,7 @@ with chat_tab:
         with st.chat_message("assistant"), st.spinner("Pensando…"):
             reply = ask(club_id, st.session_state.thread_id, prompt)
             turn = {"role": "assistant", "content": reply.answer, "plan": reply.plan, "trace": reply.trace,
-                    "memories": reply.memories}
+                    "memories": reply.memories, "guardrail": reply.guardrail, "telemetry": reply.telemetry}
             st.markdown(reply.answer)
             show_trace(turn)
         st.session_state.history.append(turn)
@@ -137,3 +156,7 @@ with eval_tab:
                 st.markdown(f"**Esperado:** {r['expected_answer']}")
                 st.markdown(f"**Respuesta:** {r['answer']}")
                 st.markdown(f"**Juez:** {r['judge_reason']}")
+
+# ---------------------------------------------------------------- observability
+with obs_tab:
+    dashboard.render()

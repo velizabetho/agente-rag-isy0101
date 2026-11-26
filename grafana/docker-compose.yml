@@ -1,0 +1,17 @@
+# Grafana + Tempo (trazas) + Prometheus (métricas) + Loki en un solo contenedor (grafana/otel-lgtm).
+# El agente envía trazas y métricas por OTLP HTTP a :4318 cuando OTEL_EXPORTER_OTLP_ENDPOINT está en el .env.
+services:
+  lgtm:
+    image: grafana/otel-lgtm:latest
+    container_name: lgtm-clubes-lectura
+    ports:
+      - "3000:3000"   # Grafana (admin / admin)
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    volumes:
+      - lgtm-data:/data
+      - ./dashboards/provider.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/agente-clubes.yaml:ro
+      - ./dashboards:/custom-dashboards:ro
+
+volumes:
+  lgtm-data:

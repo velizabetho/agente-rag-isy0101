@@ -2,12 +2,13 @@
 
 Asistente para personas que conducen **clubes de lectura de las bibliotecas públicas de Chile** (Sistema Nacional de Bibliotecas Públicas, SNBP). Proyecto semestral de **Ingeniería de Soluciones con Inteligencia Artificial (ISY0101)** — DuocUC, 2026-2.
 
-El caso está descrito en [`docs/caso.md`](docs/caso.md) y la arquitectura en [`docs/arquitectura.md`](docs/arquitectura.md).
+El caso está descrito en [`docs/caso.md`](docs/caso.md), la arquitectura en [`docs/arquitectura.md`](docs/arquitectura.md) y el análisis de observabilidad en [`docs/observabilidad.md`](docs/observabilidad.md).
 
 | Etapa | Evaluación | Qué incluye el proyecto |
 |---|---|---|
 | 1 | Diseño de Solución con LLM y RAG | RAG sobre el manual oficial del SNBP (fuente interna) + consultas SQL a los catálogos + Open Library y Wikipedia (fuentes externas) |
 | 2 | Desarrollo de un Agente Funcional | Agente LangGraph con herramientas de consulta, escritura y razonamiento, memoria de corto y largo plazo y planificación de tareas |
+| 3 | Implementación de Observabilidad | Telemetría por turno (latencia, tokens, errores, CPU y memoria), escenarios con variabilidad, dashboard en Streamlit y Grafana, guardrails de seguridad y privacidad |
 
 ## Qué hace
 
@@ -28,14 +29,17 @@ bookclub/
   data/                descarga de fuentes, parser de catálogos, clubes, armado de SQLite
   rag/                 ingesta del manual a MongoDB Atlas y búsqueda vectorial
   agent/               herramientas, prompts y grafo LangGraph
+  guardrails.py        prompt injection, largo máximo y enmascarado de datos personales
+  observability/       telemetría por turno, logs JSONL, exportación OpenTelemetry y dashboard
   records.py           reglas de reservas, planes y registros de sesiones
   planning.py          cálculo del calendario de lectura
   sql.py               consultas SQL de solo lectura (text-to-SQL)
   memory.py            memoria de largo plazo por club
   external.py          Open Library y Wikipedia
   setup.py             prepara todo con un comando
-app.py                 interfaz Streamlit (chat, registro del club, evaluación)
-evaluation/            dataset de 33 preguntas, script y resultados
+app.py                 interfaz Streamlit (chat, registro, evaluación, observabilidad)
+evaluation/            dataset de 33 preguntas, escenarios de observabilidad, scripts y resultados
+grafana/               docker compose con Grafana + Tempo + Prometheus y el dashboard provisionado
 tests/                 pruebas automáticas (pytest)
 data/                  listado de clubes (CSV); el resto se genera
 ```
@@ -143,9 +147,72 @@ Se abre `http://localhost:8501` en el navegador. Si no se abre solo, entrar a es
 2. Escribir en el chat, por ejemplo: *¿Cuánto debería durar un ciclo si nos juntamos cada semana?* o *Reserva 8 copias de Sub terra del 2026-11-02 al 2026-12-28*.
 3. Bajo cada respuesta, **🔧 Trazabilidad** muestra el plan de tareas, las herramientas usadas y lo que devolvieron.
 4. La pestaña **🗂️ Registro del club** muestra el plan activo, las reservas, las sesiones y la memoria del club.
-5. **Nueva conversación** abre un thread nuevo (la memoria de largo plazo del club se mantiene).
+5. La pestaña **📈 Observabilidad** muestra el dashboard con las métricas de todos los turnos registrados (ver [Observabilidad](#observabilidad)).
+6. **Nueva conversación** abre un thread nuevo (la memoria de largo plazo del club se mantiene).
 
 Para detener la aplicación: `Ctrl + C` en la terminal.
+
+### Ver el grafo en LangGraph Studio (opcional)
+
+`langgraph.json` expone el agente (`bookclub/agent/studio.py:graph`) al servidor de desarrollo de LangGraph:
+
+```bash
+langgraph dev
+```
+
+Abre [LangGraph Studio](https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024) (pide iniciar sesión en LangSmith) con el diagrama `guard_input → prepare → planner → agent ⇄ tools → guard_output` y permite ejecutarlo paso a paso. La entrada mínima es `{"messages": [{"role": "user", "content": "Hola"}], "club_id": "<club_id>"}`. Usa el mismo `.env` que la app; los threads de Studio se guardan en memoria, no en Atlas.
+
+## Observabilidad
+
+Cada turno del agente (desde la app o desde los scripts) genera **un registro JSON** con:
+
+| Qué se mide | Cómo |
+|---|---|
+| Latencia total y de cada paso (nodos del grafo, llamadas al LLM, herramientas, embeddings, búsqueda vectorial, APIs externas, guardrails) | Callbacks de LangChain y la función `span()` de `bookclub/observability/recorder.py` |
+| Tokens de entrada, salida y razonamiento por modelo, y costo estimado | `usage_metadata` de cada respuesta y precios de Groq |
+| Tiempo que Groq informa por llamada vs. tiempo esperando (reintentos por HTTP 429) | `total_time` de la respuesta de Groq y logs de los clientes `groq`/`httpx` |
+| Errores tipificados (`tool_use_failed`, `rate_limit`, `tool_domain_error`, `timeout`, …) y turnos fallidos | Excepciones y respuestas `ERROR:` de las herramientas |
+| CPU y memoria residente del proceso | `psutil` |
+| Resultado de los guardrails (bloqueos, datos personales enmascarados) | Nodo `guard_input` / `guard_output` |
+
+Los registros se guardan en `logs/agent_turns.jsonl` (app, no se sube a git) y en `evaluation/observability/<corrida>.jsonl` (escenarios). Los datos personales se enmascaran antes de escribir el log.
+
+### Escenarios con variabilidad
+
+`evaluation/scenarios.json` tiene 12 escenarios: preguntas del manual (base, con faltas de ortografía y con términos ambiguos), SQL (otra región), API externa, acción de varios pasos, saludo, cálculo con datos del usuario, prompt injection, datos personales y un mensaje legítimo que parece injection. Cada escenario se repite para medir **consistencia**.
+
+```bash
+python -m evaluation.observe --tag base --reps 2          # corre y registra (se puede reanudar)
+python -m evaluation.observe --tag prueba --reps 1 s01 s07  # solo algunos escenarios
+python -m evaluation.analyze base                          # tablas de análisis en Markdown
+```
+
+Cada repetición parte de una copia nueva de la base SQLite y un thread nuevo. Las métricas son: answer accuracy (juez LLM), tool accuracy, retrieval hit@5, consistencia (misma herramienta, mismo veredicto y similitud coseno entre respuestas), turnos fallidos, errores por tipo, latencia p50/p95, tokens, costo, CPU y memoria.
+
+### Dashboard en Streamlit
+
+Pestaña **📈 Observabilidad** de la app: indicadores generales, comparación entre corridas y cinco vistas (precisión y consistencia, latencia, recursos, errores y trazas con la cascada de cada turno). No requiere nada adicional.
+
+### Dashboard en Grafana (opcional, requiere Docker)
+
+`grafana/docker-compose.yml` levanta Grafana con Tempo (trazas) y Prometheus (métricas) en un solo contenedor (`grafana/otel-lgtm`) y carga el dashboard de `grafana/dashboards/`.
+
+1. Abrir Docker Desktop y ejecutar `docker compose -f grafana/docker-compose.yml up -d`.
+2. En el `.env`, completar `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` y reiniciar la app o el script.
+3. Entrar a http://localhost:3000 (usuario `admin`, contraseña `admin`) → dashboard **Agente clubes de lectura · Observabilidad**.
+
+Con la variable vacía no se envía nada y el resto del proyecto funciona igual. Si se edita el JSON del dashboard, reiniciar el contenedor con `docker compose -f grafana/docker-compose.yml restart`.
+
+## Seguridad y privacidad
+
+| Riesgo (OWASP Top 10 para LLM, 2025) | Control en el agente |
+|---|---|
+| LLM01 Prompt injection | `guard_input` clasifica cada mensaje con Llama Prompt Guard 2 (86M) y bloquea sobre 0,8; si el clasificador no responde se usa una heurística de palabras clave |
+| LLM02 Revelación de información sensible | RUT, correos y teléfonos se enmascaran antes de llegar al LLM, a la memoria, a las notas de sesión y a los logs; `guard_output` vuelve a enmascarar y bloquea respuestas que contengan el prompt del sistema |
+| LLM06 Agencia excesiva | El club se inyecta desde el estado (el modelo no elige sobre qué club actúa), SQL de solo lectura con lista blanca de tablas, confirmación antes de reservar o crear planes |
+| LLM10 Consumo sin límite | Mensajes de máximo 2.000 caracteres, `recursion_limit` de 30 pasos, historial recortado a 16 mensajes |
+
+Normativa considerada: la Ley 19.628 sobre protección de la vida privada (vigente) y la Ley 21.719, que la reemplaza y rige desde el 15 de octubre de 2027 según la Ley 21.855. Por eso el agente aplica minimización (no envía datos personales a un proveedor extranjero ni los guarda), finalidad (solo datos del club, que son públicos) y seguridad (logs enmascarados, `.env` fuera de git). El análisis completo está en [`docs/observabilidad.md`](docs/observabilidad.md).
 
 ## Solución de problemas
 
@@ -188,6 +255,8 @@ Las acciones de escritura se evalúan sobre una copia temporal de la base, sin t
 | `OPENAI_API_KEY` | Solo si `EMBEDDING_PROVIDER=openai` |
 | `MONGODB_URI` / `MONGODB_DB` | Conexión a Atlas y nombre de la base |
 | `LANGSMITH_*` | Trazas en LangSmith (opcional) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Destino de trazas y métricas OpenTelemetry (`http://localhost:4318` con el contenedor de Grafana); vacío = no se envían |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` / `OTEL_SERVICE_NAME` | `http/protobuf` y nombre del servicio en Grafana (`agente-clubes-lectura`) |
 
 ## Fuentes de datos
 
@@ -200,3 +269,4 @@ Las acciones de escritura se evalúan sobre una copia temporal de la base, sin t
 
 - `main`: versión estable, la que se entrega.
 - `dev`: desarrollo. Los cambios pasan a `main` cuando están probados.
+- `feature/<tema>`: cada bloque de trabajo (por ejemplo `feature/observabilidad`) sale de `dev` y vuelve a `dev` con un merge.

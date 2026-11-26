@@ -14,6 +14,8 @@ vectorstore/
 *.db
 evaluation/results/*.db
 data/guides/
+.langgraph_api/
+logs/
 
 # Sistema / editor
 .DS_Store
