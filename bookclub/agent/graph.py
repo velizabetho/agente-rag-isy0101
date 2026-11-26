@@ -32,6 +32,7 @@ from bookclub.agent.tools import ALL_TOOLS
 from bookclub.guardrails import BLOCKED_REPLY, InputCheck
 
 MAX_HISTORY_MESSAGES = 16
+PLANNER_ATTEMPTS = 2
 
 
 def _is_malformed_tool_call(exc: Exception) -> bool:
@@ -99,9 +100,17 @@ def build_graph(
         return {"club_context": context, "memories": memories}
 
     def plan_step(state: AgentState) -> dict:
+        """The plan is an aid: if the planner keeps failing, the agent continues without one instead of
+        failing the whole turn (observed: gpt-oss-20b sometimes answers in text and Groq rejects it)."""
         system = PLANNER_SYSTEM_PROMPT.format(today=date.today().isoformat(), club_context=state["club_context"])
-        result = planner.invoke([SystemMessage(system), HumanMessage(_last_human_text(state["messages"]))])
-        return {"plan": result.steps if isinstance(result, TaskPlan) else []}
+        messages = [SystemMessage(system), HumanMessage(_last_human_text(state["messages"]))]
+        for attempt in range(1, PLANNER_ATTEMPTS + 1):
+            try:
+                result = planner.invoke(messages)
+                return {"plan": result.steps if isinstance(result, TaskPlan) else []}
+            except Exception as exc:
+                if not _is_malformed_tool_call(exc) or attempt == PLANNER_ATTEMPTS:
+                    return {"plan": []}
 
     def agent(state: AgentState) -> dict:
         system = AGENT_SYSTEM_PROMPT.format(

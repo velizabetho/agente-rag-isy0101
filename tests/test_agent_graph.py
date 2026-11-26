@@ -109,3 +109,23 @@ def test_tool_errors_are_returned_to_the_model_not_raised(temp_db):
 
     assert state["trace"][0]["content"].startswith("ERROR: Solo hay 10 copias")
     assert state["messages"][-1].content == "No hay suficientes copias."
+
+
+def test_a_failing_planner_does_not_fail_the_turn(temp_db):
+    calls = []
+
+    class FailingPlanner:
+        def with_structured_output(self, schema):
+            def fail(_):
+                calls.append(1)
+                raise ValueError("Error code: 400 - {'error': {'code': 'tool_use_failed'}}")
+            return RunnableLambda(fail)
+
+    model = ScriptedChatModel(responses=[AIMessage("60 páginas por sesión.")])
+    agent = build_graph(model, planner_llm=FailingPlanner())
+
+    state = agent.invoke({"messages": [("user", "240 páginas en 4 sesiones, ¿cuántas por sesión?")],
+                          "club_id": "club-test"})
+
+    assert len(calls) == 2  # retried once, then the agent continued without a plan
+    assert state["plan"] == [] and state["messages"][-1].content == "60 páginas por sesión."
