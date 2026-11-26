@@ -89,6 +89,7 @@ if "thread_id" not in st.session_state:
     new_thread()
 
 with st.sidebar:
+    st.caption("Club activo")
     region = st.selectbox("Región", sorted(clubs["region"].unique()))
     options = clubs[clubs["region"] == region].set_index("club_id")
     club_id = st.selectbox("Club", options.index, format_func=lambda c: options.loc[c, "name"])
@@ -96,20 +97,18 @@ with st.sidebar:
         st.session_state.club_id = club_id
         new_thread()
     club = options.loc[club_id]
-    with st.container(border=True):
-        st.markdown(f"**{club['name']}**")
-        st.caption(f":material/local_library: {club['library'] or 'Biblioteca sin dato'}")
-        participants = f"{int(club['participants'])} participantes" if pd.notna(club["participants"]) else "sin dato"
-        st.caption(f":material/groups: {participants}")
-        st.caption(f":material/event_repeat: {club['frequency_text'] or 'frecuencia sin dato'}")
-    st.button("Nueva conversación", icon=":material/add_comment:", on_click=new_thread, width="stretch")
-    st.caption(f"Conversación `{st.session_state.thread_id[:8]}`")
+    participants = f"{int(club['participants'])} participantes" if pd.notna(club["participants"]) else "sin dato"
+    st.caption(f":material/local_library: {club['library'] or 'Biblioteca sin dato'}  \n"
+               f":material/groups: {participants}  \n"
+               f":material/event_repeat: {club['frequency_text'] or 'frecuencia sin dato'}")
 
 
 # ---------------------------------------------------------------- pages
 def conversation_page() -> None:
-    st.title("Conversación")
-    st.caption("Pregunta por el manual del SNBP, los catálogos, reservas, calendarios o la preparación de sesiones.")
+    header, action = st.columns([4, 1], vertical_alignment="bottom")
+    header.title("Conversación")
+    header.caption(f"{club['name']} · {club['region']}")
+    action.button("Nueva conversación", icon=":material/add_comment:", on_click=new_thread, width="stretch")
     for turn in st.session_state.history:
         avatar = ":material/person:" if turn["role"] == "user" else ":material/auto_stories:"
         with st.chat_message(turn["role"], avatar=avatar):
@@ -220,14 +219,14 @@ def evaluation_page() -> None:
 
 def observability_page() -> None:
     st.title("Observabilidad")
-    st.caption("Métricas de cada turno registrado: precisión, consistencia, errores, latencia, recursos y trazas.")
+    st.caption("Turnos registrados por la app y por las corridas de escenarios en evaluation/observability.")
     dashboard.render()
 
 
 page = st.navigation([
-    st.Page(conversation_page, title="Conversación", icon=":material/forum:", url_path="conversacion", default=True),
+    st.Page(conversation_page, title="Conversación", icon=":material/forum:", default=True),
     st.Page(club_page, title="Registro del club", icon=":material/folder_shared:", url_path="club"),
     st.Page(evaluation_page, title="Evaluación", icon=":material/fact_check:", url_path="evaluacion"),
     st.Page(observability_page, title="Observabilidad", icon=":material/monitoring:", url_path="observabilidad"),
-], position="top")
+], position="sidebar")
 page.run()
