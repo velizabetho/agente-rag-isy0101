@@ -137,10 +137,13 @@ class TurnRecorder(BaseCallbackHandler):
         if not usage:
             usage = {"input_tokens": raw.get("prompt_tokens", 0), "output_tokens": raw.get("completion_tokens", 0)}
         details = usage.get("output_token_details") or {}
+        cached = ((usage.get("input_token_details") or {}).get("cache_read")
+                  or (raw.get("prompt_tokens_details") or {}).get("cached_tokens") or 0)
         # Groq reports how long the request took on its side; the rest of the span is network and retry waits.
         server_s = (raw.get("total_time") or 0) + (raw.get("queue_time") or 0)
         self._end(run_id, input_tokens=usage.get("input_tokens", 0), output_tokens=usage.get("output_tokens", 0),
-                  reasoning_tokens=details.get("reasoning", 0), server_ms=round(server_s * 1000, 1))
+                  reasoning_tokens=details.get("reasoning", 0), cached_tokens=cached,
+                  server_ms=round(server_s * 1000, 1))
 
     def on_llm_error(self, error, *, run_id, **kwargs):
         self._end(run_id, error)
@@ -168,13 +171,15 @@ class TurnRecorder(BaseCallbackHandler):
         llm = [s for s in self.spans if s["kind"] == "llm"]
         tokens: dict[str, dict] = {}
         for s in llm:
-            t = tokens.setdefault(s["model"], {"calls": 0, "input": 0, "output": 0, "reasoning": 0})
+            t = tokens.setdefault(s["model"], {"calls": 0, "input": 0, "cached": 0, "output": 0, "reasoning": 0})
             t["calls"] += 1
             t["input"] += s.get("input_tokens", 0)
+            t["cached"] += s.get("cached_tokens", 0)
             t["output"] += s.get("output_tokens", 0)
             t["reasoning"] += s.get("reasoning_tokens", 0)
-        cost = sum(t["input"] * PRICES_PER_M.get(m, (0, 0))[0] + t["output"] * PRICES_PER_M.get(m, (0, 0))[1]
-                   for m, t in tokens.items()) / 1_000_000
+        # Cached input tokens cost 50% and do not count towards Groq's rate limits.
+        cost = sum((t["input"] - t["cached"] / 2) * PRICES_PER_M.get(m, (0, 0))[0]
+                   + t["output"] * PRICES_PER_M.get(m, (0, 0))[1] for m, t in tokens.items()) / 1_000_000
         # Root-cause errors only: a failed LLM call also fails its node and the turn, those are not counted again.
         errors = [{"source": s["kind"], "name": s["name"], "type": s.get("error_type", "other"), "error": s["error"]}
                   for s in self.spans if s["status"] == "error" and s["kind"] != "node"]
@@ -192,6 +197,7 @@ class TurnRecorder(BaseCallbackHandler):
             "events": self.events,
             "tokens": tokens,
             "total_tokens": sum(t["input"] + t["output"] for t in tokens.values()),
+            "cached_tokens": sum(t["cached"] for t in tokens.values()),
             "llm_calls": len(llm),
             "tool_calls": sum(1 for s in self.spans if s["kind"] == "tool"),
             "cost_usd": round(cost, 6),

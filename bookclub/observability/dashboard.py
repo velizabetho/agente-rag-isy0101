@@ -56,7 +56,8 @@ def _runs_table(df: pd.DataFrame) -> pd.DataFrame:
               "retrieval_hit": "hit@5", "error_rate": "turnos fallidos", "tool_error_rate": "errores por tool call",
               "turns_with_429": "turnos con 429", "blocked_rate": "bloqueados", "latency_p50_s": "p50 (s)",
               "latency_p95_s": "p95 (s)", "latency_max_s": "máx (s)", "tokens_mean": "tokens/turno",
-              "llm_calls_mean": "llamadas LLM/turno", "cost_per_1000_turns_usd": "USD/1.000 turnos",
+              "cached_tokens_mean": "tokens en caché/turno", "llm_calls_mean": "llamadas LLM/turno",
+              "cost_per_1000_turns_usd": "USD/1.000 turnos",
               "cpu_s_mean": "CPU (s)/turno", "rss_mb_max": "RAM máx (MB)"}
     return pd.DataFrame(table).loc[list(labels)].rename(index=labels)
 
