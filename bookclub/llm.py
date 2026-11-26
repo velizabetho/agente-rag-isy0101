@@ -16,8 +16,9 @@ def _chat(model: str, **kwargs) -> ChatGroq:
 
 
 @lru_cache
-def get_llm() -> ChatGroq:
-    return _chat(get_settings().llm_model)
+def get_llm(model: str | None = None) -> ChatGroq:
+    """Agent model (LLM_MODEL by default; another model can be passed to compare them)."""
+    return _chat(model or get_settings().llm_model)
 
 
 @lru_cache
