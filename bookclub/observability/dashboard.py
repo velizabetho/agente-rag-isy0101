@@ -10,7 +10,12 @@ import streamlit as st
 from bookclub.observability import store
 
 KIND_COLORS = alt.Scale(domain=["node", "llm", "tool", "guardrail", "embedding", "vector_search", "http"],
-                        range=["#9aa5b1", "#4c78a8", "#f58518", "#e45756", "#72b7b2", "#54a24b", "#b279a2"])
+                        range=["#A8A29E", "#92400E", "#D97706", "#9F1239", "#0F766E", "#14B8A6", "#7C3AED"])
+# One distinct colour per component; the provider wait (the bottleneck) gets the amber accent.
+COMPONENT_COLORS = alt.Scale(
+    domain=["espera proveedor (429 y red)", "LLM agent", "LLM planner", "embeddings", "búsqueda vectorial",
+            "guardrails", "APIs externas", "herramientas (resto)", "otros (grafo, memoria, BD)"],
+    range=["#D97706", "#92400E", "#1D4ED8", "#0F766E", "#14B8A6", "#9F1239", "#7C3AED", "#57534E", "#D6D3D1"])
 
 
 def _pct(value) -> str:
@@ -129,7 +134,8 @@ def _latency_tab(df: pd.DataFrame, turns: list[dict], spans: pd.DataFrame) -> No
                 "run", var_name="componente", value_name="segundos")
             st.altair_chart(alt.Chart(mean).mark_bar().encode(
                 y=alt.Y("run:N", title=None), x=alt.X("segundos:Q", stack="zero"),
-                color=alt.Color("componente:N", legend=alt.Legend(orient="bottom", columns=2, labelLimit=300)),
+                color=alt.Color("componente:N", scale=COMPONENT_COLORS,
+                                legend=alt.Legend(orient="bottom", columns=2, labelLimit=300)),
                 tooltip=["run", "componente", alt.Tooltip("segundos:Q", format=".2f")]), width="stretch")
     if not spans.empty:
         st.markdown("**Latencia de cada paso** (llamadas al LLM, herramientas, recuperación, guardrails)")
