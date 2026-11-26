@@ -61,18 +61,25 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  S([START]) --> P[prepare<br/>perfil del club + recuerdos]
+  S([START]) --> GI{{guard_input<br/>injection + datos personales}}
+  GI -- bloqueado --> E1([END])
+  GI --> P[prepare<br/>perfil del club + recuerdos]
   P --> PL[planner<br/>pasos ordenados]
   PL --> A[agent<br/>LLM + herramientas]
   A -- tool_calls --> T[tools<br/>ejecuta y registra traza]
   T --> A
-  A -- respuesta final --> E([END])
+  A -- respuesta final --> GO{{guard_output}}
+  GO --> E([END])
 ```
 
-- **prepare:** reinicia la traza del turno, carga el perfil del club desde SQLite y recupera de Atlas los recuerdos del club más parecidos a la solicitud.
-- **planner:** si la solicitud tiene varias acciones, la descompone en pasos ordenados por dependencia (primero consultar estado y disponibilidad, luego escribir, al final resumir). Para saludos o preguntas simples devuelve un plan vacío.
+- **guard_input:** rechaza mensajes de más de 2.000 caracteres o con prompt injection (Llama Prompt Guard 2) y enmascara RUT, correos y teléfonos antes de que lleguen al modelo. También reinicia la traza del turno.
+- **prepare:** carga el perfil del club desde SQLite y recupera de Atlas los recuerdos del club más parecidos a la solicitud.
+- **planner:** si la solicitud tiene varias acciones, la descompone en pasos ordenados por dependencia (primero consultar estado y disponibilidad, luego escribir, al final resumir). Para saludos o preguntas simples devuelve un plan vacío. Si falla dos veces, el agente sigue sin plan.
 - **agent:** el LLM decide qué herramienta usar siguiendo el plan y las reglas del prompt.
 - **tools:** ejecuta las herramientas y guarda nombre, argumentos y resultados para mostrarlos en la interfaz.
+- **guard_output:** vuelve a enmascarar datos personales y bloquea respuestas que contengan el prompt del sistema.
+
+La telemetría de cada turno (tiempos, tokens, errores, recursos) se describe en [`observabilidad.md`](observabilidad.md).
 
 El club sobre el que se actúa se inyecta desde el estado (`InjectedState`): el modelo no puede reservar ni registrar a nombre de otro club.
 
