@@ -1,8 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="48" viewBox="0 0 240 48" role="img" aria-label="Clubes de lectura">
-  <rect x="2" y="10" width="9" height="30" rx="2" fill="#92400E"/>
-  <rect x="14" y="6" width="9" height="34" rx="2" fill="#1C1917"/>
-  <rect x="26" y="13" width="9" height="27" rx="2" fill="#D97706"/>
-  <rect x="0" y="41" width="38" height="3" rx="1.5" fill="#D6CFC4"/>
-  <text x="48" y="22" font-family="Newsreader, Georgia, serif" font-size="19" font-weight="600" fill="#1C1917">Clubes de lectura</text>
-  <text x="48" y="40" font-family="Roboto, Arial, sans-serif" font-size="11.5" fill="#57534E">Asistente para bibliotecas públicas</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="36" viewBox="0 0 168 36" role="img" aria-label="Clubes de lectura">
+  <rect x="1" y="9" width="6" height="22" rx="1.5" fill="#92400E"/>
+  <rect x="9" y="5" width="6" height="26" rx="1.5" fill="#1C1917"/>
+  <rect x="17" y="11" width="6" height="20" rx="1.5" fill="#D97706"/>
+  <rect x="0" y="32" width="24" height="2.5" rx="1.25" fill="#D6CFC4"/>
+  <!-- An <img> SVG cannot load web fonts: textLength keeps the name inside the box with any fallback serif. -->
+  <text x="31" y="25" font-family="Newsreader, Georgia, serif" font-size="17" font-weight="600" fill="#1C1917"
+        textLength="134" lengthAdjust="spacingAndGlyphs">Clubes de lectura</text>
 </svg>
