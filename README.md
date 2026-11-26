@@ -147,6 +147,16 @@ Se abre `http://localhost:8501` en el navegador. Si no se abre solo, entrar a es
 
 Para detener la aplicación: `Ctrl + C` en la terminal.
 
+### Ver el grafo en LangGraph Studio (opcional)
+
+`langgraph.json` expone el agente (`bookclub/agent/studio.py:graph`) al servidor de desarrollo de LangGraph:
+
+```bash
+langgraph dev
+```
+
+Abre [LangGraph Studio](https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024) (pide iniciar sesión en LangSmith) con el diagrama `prepare → planner → agent ⇄ tools` y permite ejecutarlo paso a paso. La entrada mínima es `{"messages": [{"role": "user", "content": "Hola"}], "club_id": "<club_id>"}`. Usa el mismo `.env` que la app; los threads de Studio se guardan en memoria, no en Atlas.
+
 ## Solución de problemas
 
 | Síntoma | Causa probable | Qué hacer |

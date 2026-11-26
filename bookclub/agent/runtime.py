@@ -32,11 +32,15 @@ def recall_memories(club_id: str, query: str) -> list[str]:
     return [f"({m['kind']}) {m['text']}" for m in memory.recall(club_id, query)] if query else []
 
 
-@lru_cache
-def get_agent():
-    checkpointer = MongoDBSaver(get_client(), db_name=get_settings().mongodb_db)
+def build_agent(checkpointer=None):
+    """Production agent. Without a checkpointer the caller provides persistence (LangGraph Studio / `langgraph dev`)."""
     return build_graph(get_llm(), planner_llm=get_planner_llm(), club_context_fn=club_context,
                        recall_fn=recall_memories, checkpointer=checkpointer)
+
+
+@lru_cache
+def get_agent():
+    return build_agent(MongoDBSaver(get_client(), db_name=get_settings().mongodb_db))
 
 
 @dataclass
