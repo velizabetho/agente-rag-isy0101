@@ -79,10 +79,11 @@ def _precision_tab(df: pd.DataFrame) -> None:
     st.altair_chart(chart, use_container_width=True)
 
     st.markdown("**Consistencia entre repeticiones del mismo escenario**")
-    cons = _consistency(df)
-    if cons.empty:
+    repeated = df[df["scenario_id"].notna()].groupby(["run", "scenario_id"]).size()
+    if not (repeated >= 2).any():
         st.info("Se necesitan al menos 2 repeticiones por escenario.")
         return
+    cons = _consistency(df)
     st.dataframe(cons, hide_index=True, use_container_width=True, column_config={
         "tool_consistency": st.column_config.ProgressColumn("misma herramienta", format="percent", max_value=1),
         "verdict_consistency": st.column_config.ProgressColumn("mismo veredicto", format="percent", max_value=1),
@@ -191,7 +192,8 @@ def _traces_tab(df: pd.DataFrame, turns: list[dict]) -> None:
         paso=lambda d: [f"{i:02d} {n}" for i, n in enumerate(d["name"])])
     st.altair_chart(alt.Chart(spans).mark_bar(height=12).encode(
         x=alt.X("inicio:Q", title="segundos desde el inicio del turno"), x2="fin:Q",
-        y=alt.Y("paso:N", sort=None, title=None), color=alt.Color("kind:N", scale=KIND_COLORS, title="tipo"),
+        y=alt.Y("paso:N", sort=None, title=None, axis=alt.Axis(labelOverlap=False)),
+        color=alt.Color("kind:N", scale=KIND_COLORS, title="tipo"),
         tooltip=["name", "kind", "node", alt.Tooltip("duration_ms:Q", title="ms"), "status",
                  *[c for c in ("model", "input_tokens", "output_tokens", "error") if c in spans]],
     ).properties(height=max(160, 22 * len(spans))), use_container_width=True)
