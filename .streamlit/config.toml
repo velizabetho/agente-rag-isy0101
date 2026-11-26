@@ -1,0 +1,33 @@
+# Apariencia de la app. Paleta de biblioteca (café de lomo de libro y ámbar de página) y tipografía
+# editorial: Newsreader para títulos y Roboto para la interfaz.
+
+[client]
+# Oculta el botón "Deploy" y el menú de desarrollo de Streamlit.
+toolbarMode = "minimal"
+
+[theme]
+base = "light"
+primaryColor = "#92400E"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F7F4EF"
+textColor = "#1C1917"
+borderColor = "#E7E1D8"
+linkColor = "#92400E"
+font = "Roboto:https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+headingFont = "Newsreader:https://fonts.googleapis.com/css2?family=Newsreader:wght@500;600;700&display=swap"
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+baseRadius = "0.6rem"
+showWidgetBorder = true
+showSidebarBorder = true
+metricValueFontWeight = 600
+redColor = "#B91C1C"
+orangeColor = "#C2410C"
+greenColor = "#15803D"
+blueColor = "#1D4ED8"
+grayColor = "#57534E"
+chartCategoricalColors = ["#92400E", "#D97706", "#0F766E", "#57534E", "#1D4ED8", "#B45309", "#9F1239"]
+dataframeHeaderBackgroundColor = "#F7F4EF"
+
+[theme.sidebar]
+backgroundColor = "#F7F4EF"
+secondaryBackgroundColor = "#FFFFFF"

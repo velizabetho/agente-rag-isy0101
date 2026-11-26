@@ -37,17 +37,20 @@ def _consistency(df: pd.DataFrame) -> pd.DataFrame:
 
 def _kpis(summary: dict) -> None:
     rows = [
-        [("Turnos", f"{summary['turns']}"), ("Answer accuracy", _pct(summary["answer_accuracy"])),
-         ("Tool accuracy", _pct(summary["tool_accuracy"])), ("Retrieval hit@5", _pct(summary["retrieval_hit"])),
-         ("Turnos fallidos", _pct(summary["error_rate"]))],
-        [("Latencia p50", _num(summary["latency_p50_s"], " s")), ("Latencia p95", _num(summary["latency_p95_s"], " s")),
-         ("Tokens por turno", _num(summary["tokens_mean"], "", 0)),
-         ("Costo / 1.000 turnos", _num(summary["cost_per_1000_turns_usd"], " USD", 2)),
-         ("Turnos con HTTP 429", _pct(summary["turns_with_429"]))],
+        [("Turnos", f"{summary['turns']}", ":material/forum:"),
+         ("Answer accuracy", _pct(summary["answer_accuracy"]), ":material/task_alt:"),
+         ("Tool accuracy", _pct(summary["tool_accuracy"]), ":material/build:"),
+         ("Retrieval hit@5", _pct(summary["retrieval_hit"]), ":material/menu_book:"),
+         ("Turnos fallidos", _pct(summary["error_rate"]), ":material/error:")],
+        [("Latencia p50", _num(summary["latency_p50_s"], " s"), ":material/timer:"),
+         ("Latencia p95", _num(summary["latency_p95_s"], " s"), ":material/hourglass_bottom:"),
+         ("Tokens por turno", _num(summary["tokens_mean"], "", 0), ":material/toll:"),
+         ("USD / 1.000 turnos", _num(summary["cost_per_1000_turns_usd"], "", 2), ":material/payments:"),
+         ("Turnos con 429", _pct(summary["turns_with_429"]), ":material/block:")],
     ]
     for row in rows:
-        for col, (label, value) in zip(st.columns(len(row)), row, strict=True):
-            col.metric(label, value)
+        for col, (label, value, icon) in zip(st.columns(len(row)), row, strict=True):
+            col.metric(label, value, icon=icon, border=True)
 
 
 PERCENT_ROWS = {"answer_accuracy", "tool_accuracy", "retrieval_hit", "error_rate", "tool_error_rate",
@@ -93,7 +96,7 @@ def _precision_tab(df: pd.DataFrame) -> None:
         tooltip=["run", "category", "métrica", alt.Tooltip("valor:Q", format=".0%"), "n"],
     ).properties(height=160)
     st.markdown("**Precisión por categoría** (answer = juez LLM; tools = herramientas esperadas)")
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart, width="stretch")
 
     st.markdown("**Consistencia entre repeticiones del mismo escenario**")
     repeated = df[df["scenario_id"].notna()].groupby(["run", "scenario_id"]).size()
@@ -101,7 +104,7 @@ def _precision_tab(df: pd.DataFrame) -> None:
         st.info("Se necesitan al menos 2 repeticiones por escenario.")
         return
     cons = _consistency(df)
-    st.dataframe(cons, hide_index=True, use_container_width=True, column_config={
+    st.dataframe(cons, hide_index=True, width="stretch", column_config={
         "tool_consistency": st.column_config.ProgressColumn("misma herramienta", format="percent", max_value=1),
         "verdict_consistency": st.column_config.ProgressColumn("mismo veredicto", format="percent", max_value=1),
         "answer_similarity": st.column_config.NumberColumn("similitud respuestas", format="%.3f"),
@@ -117,7 +120,7 @@ def _latency_tab(df: pd.DataFrame, turns: list[dict], spans: pd.DataFrame) -> No
         st.markdown("**Latencia por categoría**")
         st.altair_chart(alt.Chart(df).mark_boxplot(extent="min-max").encode(
             x=alt.X("category:N", title=None), xOffset="run:N", y=alt.Y("latency_s:Q", title="segundos"),
-            color=alt.Color("run:N", title="corrida")), use_container_width=True)
+            color=alt.Color("run:N", title="corrida")), width="stretch")
     with right:
         st.markdown("**¿Dónde se va el tiempo?** (promedio por turno)")
         steps = store.step_breakdown(turns)
@@ -127,22 +130,19 @@ def _latency_tab(df: pd.DataFrame, turns: list[dict], spans: pd.DataFrame) -> No
             st.altair_chart(alt.Chart(mean).mark_bar().encode(
                 y=alt.Y("run:N", title=None), x=alt.X("segundos:Q", stack="zero"),
                 color=alt.Color("componente:N", legend=alt.Legend(orient="bottom", columns=2, labelLimit=300)),
-                tooltip=["run", "componente", alt.Tooltip("segundos:Q", format=".2f")]),
-                use_container_width=True)
+                tooltip=["run", "componente", alt.Tooltip("segundos:Q", format=".2f")]), width="stretch")
     if not spans.empty:
         st.markdown("**Latencia de cada paso** (llamadas al LLM, herramientas, recuperación, guardrails)")
         steps = spans[spans["kind"] != "node"]
         st.altair_chart(alt.Chart(steps).mark_boxplot(extent="min-max").encode(
             y=alt.Y("name:N", title=None, sort="-x"), x=alt.X("duration_s:Q", title="segundos",
                                                              scale=alt.Scale(type="symlog")),
-            color=alt.Color("kind:N", scale=KIND_COLORS, title="tipo")).properties(height=380),
-            use_container_width=True)
+            color=alt.Color("kind:N", scale=KIND_COLORS, title="tipo")).properties(height=380), width="stretch")
     st.markdown("**Latencia vs. respuestas HTTP 429 del proveedor**")
     st.altair_chart(alt.Chart(df).mark_circle(size=70).encode(
         x=alt.X("tokens:Q", title="tokens del turno"), y=alt.Y("latency_s:Q", title="latencia (s)"),
         color=alt.Color("http_429:Q", title="429", scale=alt.Scale(scheme="orangered")),
-        tooltip=["run", "scenario_id", "category", "latency_s", "tokens", "http_429", "retry_wait_s"]),
-        use_container_width=True)
+        tooltip=["run", "scenario_id", "category", "latency_s", "tokens", "http_429", "retry_wait_s"]), width="stretch")
 
 
 def _resources_tab(df: pd.DataFrame, spans: pd.DataFrame) -> None:
@@ -159,24 +159,24 @@ def _resources_tab(df: pd.DataFrame, spans: pd.DataFrame) -> None:
             st.altair_chart(alt.Chart(tokens).mark_bar().encode(
                 y=alt.Y("run:N", title=None), x=alt.X("tokens:Q", stack="zero"),
                 color=alt.Color("serie:N", title=None, legend=alt.Legend(orient="bottom", columns=2)),
-                tooltip=["run", "model", "tipo", alt.Tooltip("tokens:Q", format=",.0f")]), use_container_width=True)
+                tooltip=["run", "model", "tipo", alt.Tooltip("tokens:Q", format=",.0f")]), width="stretch")
     with right:
         st.markdown("**Tokens promedio por categoría**")
         st.altair_chart(alt.Chart(df).mark_bar().encode(
             x=alt.X("category:N", title=None), xOffset="run:N", y=alt.Y("mean(tokens):Q", title="tokens"),
-            color=alt.Color("run:N", title="corrida")), use_container_width=True)
+            color=alt.Color("run:N", title="corrida")), width="stretch")
     left, right = st.columns(2)
     ordered = df.sort_values("timestamp").assign(turno=range(1, len(df) + 1))
     with left:
         st.markdown("**CPU por turno** (s de CPU del proceso)")
         st.altair_chart(alt.Chart(ordered).mark_line(point=True).encode(
             x="turno:Q", y=alt.Y("cpu_s:Q", title="CPU (s)"), color=alt.Color("run:N", title="corrida"),
-            tooltip=["run", "scenario_id", "cpu_s", "latency_s"]), use_container_width=True)
+            tooltip=["run", "scenario_id", "cpu_s", "latency_s"]), width="stretch")
     with right:
         st.markdown("**Memoria residente del proceso** (MB)")
         st.altair_chart(alt.Chart(ordered).mark_line(point=True).encode(
             x="turno:Q", y=alt.Y("rss_mb:Q", title="RSS (MB)"), color=alt.Color("run:N", title="corrida"),
-            tooltip=["run", "scenario_id", "rss_mb"]), use_container_width=True)
+            tooltip=["run", "scenario_id", "rss_mb"]), width="stretch")
 
 
 def _errors_tab(turns: list[dict]) -> None:
@@ -189,14 +189,13 @@ def _errors_tab(turns: list[dict]) -> None:
         st.markdown("**Errores por tipo**")
         st.altair_chart(alt.Chart(errors).mark_bar().encode(
             y=alt.Y("type:N", title=None, sort="-x"), x=alt.X("count():Q", title="ocurrencias"),
-            color=alt.Color("run:N", title="corrida"), tooltip=["type", "run", "count()"]),
-            use_container_width=True)
+            color=alt.Color("run:N", title="corrida"), tooltip=["type", "run", "count()"]), width="stretch")
     with right:
         st.markdown("**Errores por componente**")
         st.altair_chart(alt.Chart(errors).mark_bar().encode(
             y=alt.Y("name:N", title=None, sort="-x"), x=alt.X("count():Q", title="ocurrencias"),
-            color=alt.Color("type:N", title="tipo"), tooltip=["name", "type", "count()"]), use_container_width=True)
-    st.dataframe(errors.drop(columns="turn_id"), hide_index=True, use_container_width=True)
+            color=alt.Color("type:N", title="tipo"), tooltip=["name", "type", "count()"]), width="stretch")
+    st.dataframe(errors.drop(columns="turn_id"), hide_index=True, width="stretch")
 
 
 def _traces_tab(df: pd.DataFrame, turns: list[dict]) -> None:
@@ -215,7 +214,7 @@ def _traces_tab(df: pd.DataFrame, turns: list[dict]) -> None:
         color=alt.Color("kind:N", scale=KIND_COLORS, title="tipo"),
         tooltip=["name", "kind", "node", alt.Tooltip("duration_ms:Q", title="ms"), "status",
                  *[c for c in ("model", "input_tokens", "output_tokens", "error") if c in spans]],
-    ).properties(height=max(160, 22 * len(spans))), use_container_width=True)
+    ).properties(height=max(160, 22 * len(spans))), width="stretch")
     cols = st.columns(5)
     cols[0].metric("Latencia", f"{turn['latency_ms'] / 1000:.1f} s")
     cols[1].metric("Tokens", f"{turn['total_tokens']:,}")
@@ -238,10 +237,10 @@ def render() -> None:
     turns = _load(tuple(map(str, files)), tuple(f.stat().st_mtime for f in files))
     df = store.turns_frame(turns)
     runs = sorted(df["run"].unique())
-    left, right = st.columns(2)
-    chosen_runs = left.multiselect("Corridas", runs, default=runs)
+    left, right = st.columns([2, 3])
+    chosen_runs = left.pills("Corridas", runs, selection_mode="multi", default=runs)
     categories = sorted(df["category"].unique())
-    chosen_cats = right.multiselect("Categorías", categories, default=categories)
+    chosen_cats = right.pills("Categorías", categories, selection_mode="multi", default=categories)
     df = df[df["run"].isin(chosen_runs) & df["category"].isin(chosen_cats)]
     if df.empty:
         st.warning("No hay turnos con esos filtros.")
@@ -250,11 +249,12 @@ def render() -> None:
     spans = store.spans_frame(turns)
 
     _kpis(store.summary(df))
-    with st.expander("Comparación entre corridas", expanded=len(chosen_runs) > 1):
+    with st.expander("Comparación entre corridas", expanded=len(chosen_runs) > 1, icon=":material/compare_arrows:"):
         runs_table = _runs_table(df)
-        st.dataframe(runs_table, use_container_width=True, height=36 * (len(runs_table) + 1) + 4)
+        st.dataframe(runs_table, width="stretch", height=36 * (len(runs_table) + 1) + 4)
     precision, latency, resources, errors, traces = st.tabs(
-        ["🎯 Precisión y consistencia", "⏱️ Latencia", "🧮 Recursos", "🚨 Errores", "🔎 Trazas"])
+        [":material/target: Precisión y consistencia", ":material/timer: Latencia", ":material/memory: Recursos",
+         ":material/report: Errores", ":material/account_tree: Trazas"])
     with precision:
         _precision_tab(df)
     with latency:
