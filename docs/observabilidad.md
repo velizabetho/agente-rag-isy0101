@@ -104,6 +104,10 @@ Cómo leer la tabla:
 - Lo que sí cambió por el código: no hubo carga del modelo de embeddings en ningún turno (H2) y ningún turno falló. El planificador no volvió a fallar en esta corrida, así que H3 se verifica con la prueba automática.
 - `modelo-20b` usa `gpt-oss-20b` como agente. Eligió bien las herramientas en los 12 escenarios y respondió bien 11; la falla fue `s08` (saludo), donde enumeró herramientas que no tiene. Cuesta la mitad, pero tarda lo mismo porque su límite también es de 8.000 tokens por minuto y además comparte cuota con el planificador y el juez.
 
+El mismo período visto en Grafana (las métricas de Prometheus se reinician con cada proceso, por eso los totales son aproximados; el análisis usa los JSONL):
+
+![Dashboard de Grafana](capturas/grafana.png)
+
 ## Recomendaciones para producción
 
 1. **Capacidad del proveedor (H1).** El cuello de botella es la cuota y no el código. Con 5.940 tokens por turno, atender 30 turnos por minuto exige unos 180.000 tokens por minuto, muy por sobre los 8.000 del plan gratuito; Groq ofrece límites mayores en su plan Developer. Con el costo medido (USD 0,96 por 1.000 turnos), 10.000 turnos al mes cuestan cerca de USD 10. En el plan gratuito, los 200.000 tokens diarios alcanzan para unos 33 turnos al día con `gpt-oss-120b`.
