@@ -50,15 +50,32 @@ def _kpis(summary: dict) -> None:
             col.metric(label, value)
 
 
+PERCENT_ROWS = {"answer_accuracy", "tool_accuracy", "retrieval_hit", "error_rate", "tool_error_rate",
+                "turns_with_429", "blocked_rate"}
+
+
+def _format(key: str, value) -> str:
+    if value is None or pd.isna(value):
+        return "—"
+    if key in PERCENT_ROWS:
+        return f"{value:.0%}"
+    if key == "cost_per_1000_turns_usd":
+        return f"{value:.2f}"
+    if key == "turns" or abs(value) >= 100:
+        return f"{value:,.0f}"
+    return f"{value:.1f}"
+
+
 def _runs_table(df: pd.DataFrame) -> pd.DataFrame:
     table = {run: store.summary(group) for run, group in df.groupby("run")}
     labels = {"turns": "turnos", "answer_accuracy": "answer acc.", "tool_accuracy": "tool acc.",
               "retrieval_hit": "hit@5", "error_rate": "turnos fallidos", "tool_error_rate": "errores por tool call",
               "turns_with_429": "turnos con 429", "blocked_rate": "bloqueados", "latency_p50_s": "p50 (s)",
               "latency_p95_s": "p95 (s)", "latency_max_s": "máx (s)", "tokens_mean": "tokens/turno",
-              "llm_calls_mean": "llamadas LLM/turno", "cost_per_1000_turns_usd": "USD/1.000 turnos",
+              "cached_tokens_mean": "tokens en caché/turno", "llm_calls_mean": "llamadas LLM/turno",
+              "cost_per_1000_turns_usd": "USD/1.000 turnos",
               "cpu_s_mean": "CPU (s)/turno", "rss_mb_max": "RAM máx (MB)"}
-    return pd.DataFrame(table).loc[list(labels)].rename(index=labels)
+    return pd.DataFrame({run: {labels[k]: _format(k, s.get(k)) for k in labels} for run, s in table.items()})
 
 
 def _precision_tab(df: pd.DataFrame) -> None:
@@ -109,7 +126,7 @@ def _latency_tab(df: pd.DataFrame, turns: list[dict], spans: pd.DataFrame) -> No
                 "run", var_name="componente", value_name="segundos")
             st.altair_chart(alt.Chart(mean).mark_bar().encode(
                 y=alt.Y("run:N", title=None), x=alt.X("segundos:Q", stack="zero"),
-                color=alt.Color("componente:N", legend=alt.Legend(orient="bottom", columns=3)),
+                color=alt.Color("componente:N", legend=alt.Legend(orient="bottom", columns=2, labelLimit=300)),
                 tooltip=["run", "componente", alt.Tooltip("segundos:Q", format=".2f")]),
                 use_container_width=True)
     if not spans.empty:
@@ -137,9 +154,11 @@ def _resources_tab(df: pd.DataFrame, spans: pd.DataFrame) -> None:
             tokens = (llm.groupby(["run", "turn_id", "model"])[["input_tokens", "output_tokens"]].sum()
                       .groupby(["run", "model"]).mean().reset_index()
                       .melt(["run", "model"], var_name="tipo", value_name="tokens"))
+            tokens["serie"] = tokens["model"].str.replace("openai/", "") + " · " + tokens["tipo"].map(
+                {"input_tokens": "entrada", "output_tokens": "salida"})
             st.altair_chart(alt.Chart(tokens).mark_bar().encode(
                 y=alt.Y("run:N", title=None), x=alt.X("tokens:Q", stack="zero"),
-                color=alt.Color("model:N", title="modelo"), opacity=alt.Opacity("tipo:N", title="tipo"),
+                color=alt.Color("serie:N", title=None, legend=alt.Legend(orient="bottom", columns=2)),
                 tooltip=["run", "model", "tipo", alt.Tooltip("tokens:Q", format=",.0f")]), use_container_width=True)
     with right:
         st.markdown("**Tokens promedio por categoría**")
@@ -232,7 +251,8 @@ def render() -> None:
 
     _kpis(store.summary(df))
     with st.expander("Comparación entre corridas", expanded=len(chosen_runs) > 1):
-        st.dataframe(_runs_table(df), use_container_width=True)
+        runs_table = _runs_table(df)
+        st.dataframe(runs_table, use_container_width=True, height=36 * (len(runs_table) + 1) + 4)
     precision, latency, resources, errors, traces = st.tabs(
         ["🎯 Precisión y consistencia", "⏱️ Latencia", "🧮 Recursos", "🚨 Errores", "🔎 Trazas"])
     with precision:

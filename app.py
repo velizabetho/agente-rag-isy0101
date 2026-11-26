@@ -13,12 +13,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from bookclub import memory, records  # noqa: E402  (load .env before importing settings users)
-from bookclub.agent.runtime import ask  # noqa: E402
+from bookclub.agent.runtime import ask, warm_up  # noqa: E402
 from bookclub.db import connect  # noqa: E402
 from bookclub.observability import dashboard  # noqa: E402
 from evaluation.evaluate import RESULTS_DIR, load_dataset, run_evaluation  # noqa: E402
 
 st.set_page_config(page_title="Asistente de clubes de lectura", page_icon="📚", layout="wide")
+
+
+@st.cache_resource(show_spinner="Cargando el modelo de embeddings…")
+def warm_up_once() -> bool:
+    warm_up()
+    return True
+
+
+warm_up_once()
 
 
 @st.cache_data

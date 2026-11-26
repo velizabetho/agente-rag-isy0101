@@ -267,7 +267,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(agent_tokens_total[$__range]))",
+          "expr": "sum(increase(agent_tokens_total{type!=\"cached\"}[$__range]))",
           "legendFormat": "",
           "instant": true,
           "range": false
@@ -410,7 +410,7 @@
         "x": 12,
         "y": 6,
         "w": 12,
-        "h": 8
+        "h": 9
       },
       "targets": [
         {
@@ -419,7 +419,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (name) (increase(agent_step_duration_seconds_sum{kind!=\"node\"}[$__range])) / sum by (name) (increase(agent_step_duration_seconds_count{kind!=\"node\"}[$__range]))",
+          "expr": "sum by (name) (increase(agent_step_duration_seconds_sum{kind!=\"node\"}[$__range])) / (sum by (name) (increase(agent_step_duration_seconds_count{kind!=\"node\"}[$__range])) > 0)",
           "legendFormat": "{{name}}",
           "instant": true,
           "range": false
@@ -554,7 +554,7 @@
     {
       "id": 14,
       "type": "timeseries",
-      "title": "Tokens por minuto por modelo (límite plan gratuito: 8.000 TPM)",
+      "title": "Tokens por minuto que cuentan para el límite (8.000 TPM en plan gratuito)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -572,7 +572,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (model) (rate(agent_tokens_total[2m])) * 60",
+          "expr": "(sum by (model) (rate(agent_tokens_total{type!=\"cached\"}[2m])) - (sum by (model) (rate(agent_tokens_total{type=\"cached\"}[2m])) or sum by (model) (rate(agent_tokens_total{type=\"input\"}[2m])) * 0)) * 60",
           "legendFormat": "{{model}}",
           "instant": false,
           "range": true
@@ -602,7 +602,8 @@
         },
         "overrides": []
       },
-      "options": {}
+      "options": {},
+      "description": "Tokens de entrada y salida menos los tokens en caché, que según Groq no cuentan para el límite."
     },
     {
       "id": 15,

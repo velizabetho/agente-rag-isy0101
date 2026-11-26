@@ -115,7 +115,7 @@ def export_turn(record: dict, start_ns: int) -> None:
         step_labels = {"kind": item["kind"], "name": item["name"], "status": item["status"]}
         inst.step.record(item["duration_ms"] / 1000, step_labels)
         if item["kind"] == "llm":
-            for kind in ("input", "output"):
+            for kind in ("input", "output", "cached"):
                 inst.tokens.add(item.get(f"{kind}_tokens", 0), {"model": item["model"], "type": kind})
         if item["kind"] == "tool":
             inst.tool_calls.add(1, {"tool": item["name"], "status": item["status"]})
