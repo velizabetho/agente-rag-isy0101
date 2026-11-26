@@ -1,5 +1,6 @@
 # Apariencia de la app. Paleta de biblioteca (café de lomo de libro y ámbar de página) y tipografía
-# editorial: Newsreader para títulos y Roboto para la interfaz.
+# editorial: Newsreader para títulos y Roboto para la interfaz. Escala de textos pensada para una
+# herramienta de trabajo: títulos de página de 28 px, secciones de 20 px, texto de 15 px.
 
 [client]
 # Oculta el botón "Deploy" y el menú de desarrollo de Streamlit.
@@ -15,11 +16,15 @@ borderColor = "#E7E1D8"
 linkColor = "#92400E"
 font = "Roboto:https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
 headingFont = "Newsreader:https://fonts.googleapis.com/css2?family=Newsreader:wght@500;600;700&display=swap"
+baseFontSize = 15
+headingFontSizes = ["1.75rem", "1.3rem", "1.1rem", "1rem", "0.95rem", "0.9rem"]
 headingFontWeights = [600, 600, 600, 600, 600, 600]
+metricValueFontSize = "1.6rem"
+metricValueFontWeight = 600
+paddingTop = "2.5rem"
 baseRadius = "0.6rem"
 showWidgetBorder = true
 showSidebarBorder = true
-metricValueFontWeight = 600
 redColor = "#B91C1C"
 orangeColor = "#C2410C"
 greenColor = "#15803D"
@@ -31,3 +36,4 @@ dataframeHeaderBackgroundColor = "#F7F4EF"
 [theme.sidebar]
 backgroundColor = "#F7F4EF"
 secondaryBackgroundColor = "#FFFFFF"
+paddingTop = "1.5rem"
